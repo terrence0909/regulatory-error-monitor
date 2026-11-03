@@ -10,7 +10,7 @@ A data pipeline that loads payment validation errors, keeps a full history of ho
 |---|---|---|
 | 0 | Repo and setup | Done |
 | 1 | Data model design | Done |
-| 2 | Docker and database | Next |
+| 2 | Docker and database | Done |
 | 3 | Fake data generator | Not started |
 | 4 | Loader | Not started |
 | 5 | dbt models and tests | Not started |
