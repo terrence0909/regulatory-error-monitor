@@ -1,0 +1,24 @@
+# Secrets: never commit these
+.env
+*.pem
+*.key
+
+# Generated data and outputs
+data/
+*.csv
+target/
+dbt_packages/
+logs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
