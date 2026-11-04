@@ -1,0 +1,39 @@
+version: 2
+
+models:
+  - name: stg_error_detail
+    description: One row per version of an error code, latest copy only.
+    columns:
+      - name: error_detail_skey
+        data_tests: [unique, not_null]
+      - name: error_code
+        data_tests: [not_null]
+      - name: active_date
+        data_tests: [not_null]
+
+  - name: stg_validation_rule
+    description: One row per version of a rule.
+    columns:
+      - name: rule_skey
+        data_tests: [not_null]
+      - name: updated_at
+        data_tests: [not_null]
+
+  - name: stg_file_registry
+    description: One row per received file.
+    columns:
+      - name: file_skey
+        data_tests: [unique, not_null]
+
+  - name: stg_transaction_validation
+    description: One row per validation error, latest version only.
+    columns:
+      - name: transaction_val_skey
+        data_tests: [unique, not_null]
+      - name: error_detail_skey_fk
+        data_tests: [not_null]
+      - name: error_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Open', 'Cleared']

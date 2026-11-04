@@ -1,0 +1,23 @@
+name: reg_monitor
+version: "1.0.0"
+config-version: 2
+profile: reg_monitor
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Incremental runs reprocess this many days back, so late-arriving rows are picked up.
+  lookback_days: 3
+
+models:
+  reg_monitor:
+    staging:
+      +schema: staging
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table
