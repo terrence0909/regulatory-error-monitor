@@ -23,15 +23,15 @@ erDiagram
     FACT_VALIDATION_ERROR }o--|| DIM_ERROR : "error_version_key"
     FACT_VALIDATION_ERROR }o--|| DIM_RULE : "rule_key"
     FACT_VALIDATION_ERROR }o--|| DIM_FILE : "file_key"
-    FACT_VALIDATION_ERROR }o--|| DIM_REPORTING_ENTITY : "entity_key"
+    FACT_VALIDATION_ERROR }o--|| DIM_REPORTING_ENTITY : "entity_code"
     FACT_VALIDATION_ERROR }o--|| DIM_DATE : "created_date_key"
 
     FACT_VALIDATION_ERROR {
         bigint validation_error_key PK
         int error_version_key FK
-        int rule_key FK
+        bigint rule_key FK
         int file_key FK
-        int entity_key FK
+        text entity_code FK
         int created_date_key FK
         text message_id
         text end_to_end_id
@@ -44,8 +44,8 @@ erDiagram
         timestamp created_at
         timestamp processed_at
         boolean is_open
-        int days_open
-        text batch_id
+        int days_to_clear
+        date batch_date
         timestamp loaded_at
     }
     DIM_ERROR {
@@ -60,7 +60,8 @@ erDiagram
         boolean is_current
     }
     DIM_RULE {
-        int rule_key PK
+        bigint rule_key PK
+        int rule_skey
         text rule_code
         text rule_name
         text rule_category
@@ -72,11 +73,10 @@ erDiagram
         int file_key PK
         text file_name
         timestamp received_at
-        int row_count
+        int row_count_claimed
     }
     DIM_REPORTING_ENTITY {
-        int entity_key PK
-        text entity_code
+        text entity_code PK
         text entity_name
     }
     DIM_DATE {
@@ -99,15 +99,16 @@ The error lookup keeps old versions. When an error's description changes, the ol
 - The current version uses `9999-12-31` as its `valid_to` date, so date comparisons stay simple.
 - A fact row is joined to the version that was active **on the date the error was created**, not the latest version. This is called a point-in-time join. It stops old reports from changing when someone rewrites a description.
 
-The rule lookup is different. Rules are overwritten in place, so history is captured with a dbt snapshot (phase 5).
+Rules work the same way. They are renamed in place in the source, but the loader keeps every batch, so each version is already in `raw`. See decision 6.
 
 ### 2. What open and closed mean
 
 - An error is **closed** when `processed_at` is filled in.
 - An error is **open** when `processed_at` is empty.
-- `days_open` is `processed_at - created_at` for closed errors, and `today - created_at` for open ones.
+- `days_to_clear` is `processed_at - created_at` in days. It is only filled in for closed errors.
+- How long an open error has been open depends on the day you ask, so it is **not stored**. The dashboard works it out when you look, counting from the latest batch date.
 
-This is an assumption. If you can justify a different rule, change it here first, then in the models.
+Storing "days open" for open errors would go stale the next morning, because the incremental model only rewrites recent rows.
 
 ### 3. What happens to bad rows
 
@@ -128,7 +129,28 @@ The source repeats `error_type` and `error_description` on both tables, and has 
 
 ### 5. Keys
 
-All warehouse keys are integers generated in the warehouse. Source keys are kept as columns so rows can be traced back.
+Keys have to stay the same from one run to the next, otherwise an incremental run would point old fact rows at the wrong thing. So:
+
+| Table | Key | Why |
+|---|---|---|
+| `dim_error` | `error_version_key` = the source's own version key | Already one key per version, never reused |
+| `dim_rule` | `rule_key` = rule key x 1000 + version number | New versions only ever add to the end |
+| `dim_file` | `file_key` = the source's file key | Already unique |
+| `dim_reporting_entity` | `entity_code` | Short, stable and already unique |
+| `dim_date` | `date_key` = the date as a number like `20260115` | Self-explanatory |
+| `fact_validation_error` | `validation_error_key` = the source row key | One row per source error |
+
+Source keys are kept so rows can always be traced back.
+
+### 6. Why there is no dbt snapshot for rules
+
+A snapshot is for a source that overwrites rows in place and keeps no history, so you have to record each change yourself, every day. Here the loader keeps every batch in `raw`, so the history is already there: each version of a rule arrives as its own row. `dim_rule` reads those versions and works out when each was valid.
+
+I would use a snapshot if the source were a live table that only ever showed its current state.
+
+### 7. Late arrivals and reruns
+
+The fact table is incremental. Each run reprocesses the last few days of batches (`lookback_days`, default 3) and replaces rows by key, so late rows and newly cleared errors are picked up and a rerun changes nothing. If you empty `raw` and start again, rebuild from scratch with `bash run_dbt.sh build --full-refresh`.
 
 ## Assumptions to confirm
 
