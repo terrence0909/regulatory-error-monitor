@@ -13,11 +13,15 @@ models:
           - accepted_values:
               arguments:
                 values: ['Warning', 'Error', 'Critical']
+              config:
+                severity: warn
       - name: error_type
         data_tests:
           - accepted_values:
               arguments:
                 values: ['Format', 'Limit', 'Missing value', 'Reference data', 'Duplicate', 'Timing']
+              config:
+                severity: warn
       - name: valid_from
         data_tests: [not_null]
       - name: valid_to
@@ -101,4 +105,22 @@ models:
               arguments:
                 values: ['Pending', 'Reported']
       - name: created_at
+        data_tests: [not_null]
+
+  - name: dq_daily_score
+    description: One row per batch day with the share of transaction rows that passed every check.
+    columns:
+      - name: batch_date
+        data_tests: [unique, not_null]
+      - name: rows_read
+        data_tests: [not_null]
+      - name: quality_score_pct
+        description: Rows loaded divided by rows read, as a percentage.
+
+  - name: dq_rejections_by_reason
+    description: Rows rejected each day, split by the reason they were rejected.
+    columns:
+      - name: batch_date
+        data_tests: [not_null]
+      - name: reason
         data_tests: [not_null]

@@ -14,8 +14,8 @@ A data pipeline that loads payment validation errors, keeps a full history of ho
 | 3 | Fake data generator | Done |
 | 4 | Loader | Done |
 | 5 | dbt models and tests | Done |
-| 6 | Data quality tracking | Next |
-| 7 | Airflow | Not started |
+| 6 | Data quality tracking | Done |
+| 7 | Airflow | Next |
 | 8 | Dashboard | Not started |
 | 9 | Performance | Not started |
 | 10 | CI/CD | Not started |

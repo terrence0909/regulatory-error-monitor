@@ -12,3 +12,15 @@ sources:
       - name: validation_rule
       - name: file_registry
       - name: transaction_validation
+
+  - name: audit
+    description: What the loader did.
+    schema: audit
+    tables:
+      - name: load_log
+
+  - name: quarantine
+    description: Rows the loader refused, with the reason.
+    schema: quarantine
+    tables:
+      - name: rejected_rows

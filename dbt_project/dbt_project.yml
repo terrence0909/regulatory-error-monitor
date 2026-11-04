@@ -12,6 +12,8 @@ clean-targets: ["target", "dbt_packages"]
 vars:
   # Incremental runs reprocess this many days back, so late-arriving rows are picked up.
   lookback_days: 3
+  # A day whose quality score is below this raises a warning (it does not stop the pipeline).
+  min_quality_score: 97
 
 models:
   reg_monitor:
