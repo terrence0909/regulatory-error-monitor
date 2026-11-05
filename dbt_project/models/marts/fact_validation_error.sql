@@ -25,7 +25,9 @@ with source_rows as (
     select *
     from {{ ref('stg_transaction_validation') }}
     {% if is_incremental() %}
-    where batch_date >= (select max(batch_date) from {{ this }}) - {{ var('lookback_days') }}
+    where batch_date >= (
+        select coalesce(max(batch_date), date '1900-01-01') from {{ this }}
+    ) - {{ var('lookback_days') }}
     {% endif %}
 
 ),
