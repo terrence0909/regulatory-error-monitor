@@ -16,8 +16,8 @@ A data pipeline that loads payment validation errors, keeps a full history of ho
 | 5 | dbt models and tests | Done |
 | 6 | Data quality tracking | Done |
 | 7 | Airflow | Done |
-| 8 | Dashboard | Next |
-| 9 | Performance | Not started |
+| 8 | Dashboard | Done |
+| 9 | Performance | Next |
 | 10 | CI/CD | Not started |
 | 11 | Docs and polish | Not started |
 | 12 | Azure version | Not started |

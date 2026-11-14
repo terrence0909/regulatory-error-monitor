@@ -1,7 +1,8 @@
-# Phase 7: PostgreSQL for the data, plus Airflow to run the pipeline every day.
+# PostgreSQL for the data, Airflow to run the pipeline every day, and the dashboard.
 #
 # Start everything:   docker compose up -d
 # Airflow web page:   http://localhost:8080   (user: admin, password: AIRFLOW_ADMIN_PASSWORD from .env)
+# Dashboard:          http://localhost:8501
 
 x-airflow-common: &airflow-common
   build: ./airflow
@@ -120,6 +121,33 @@ services:
       retries: 5
       start_period: 30s
     restart: unless-stopped
+
+  # Phase 8: the dashboard. Open http://localhost:8501
+  dashboard:
+    build: ./dashboard
+    image: reg-monitor-dashboard:local
+    container_name: reg_monitor_dashboard
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Inside Docker the database is reached by its service name, on its normal port.
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+    volumes:
+      # The code is mounted from your project folder, so edits show up without rebuilding.
+      - ./dashboard:/app
+    ports:
+      - "127.0.0.1:8501:8501"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
 
 volumes:
   pgdata:
