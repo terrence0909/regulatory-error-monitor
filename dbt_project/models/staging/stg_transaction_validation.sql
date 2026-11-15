@@ -3,14 +3,36 @@
   When an error is cleared the source sends the same row again with a processed date,
   so we keep the newest copy of each transaction_val_skey.
 
+  Incremental: each run only reads the last few days of raw batches (var lookback_days),
+  cleans them, and replaces those rows by key. A key whose newest copy is in the window
+  is correct, because the newest copy always arrives in a recent batch. Reading only
+  recent batches uses the index on batch_id, so the run no longer scans all of raw.
+  To rebuild from scratch: bash run_dbt.sh run --full-refresh
+
   Cleaned up here:
     - the repeated error type and description are dropped (the error lookup is the truth)
     - the two processed-date columns become one: processed_at
     - status text is tidied
 #}
+{{
+    config(
+        materialized='incremental',
+        unique_key='transaction_val_skey',
+        incremental_strategy='delete+insert',
+        on_schema_change='fail'
+    )
+}}
+
 with source as (
 
-    select * from {{ source('raw', 'transaction_validation') }}
+    select *
+    from {{ source('raw', 'transaction_validation') }}
+    {% if is_incremental() %}
+    where batch_id >= 'batch_' || to_char(
+        (select coalesce(max(batch_date), date '1900-01-01') from {{ this }})
+            - {{ var('lookback_days') }},
+        'YYYY-MM-DD')
+    {% endif %}
 
 ),
 

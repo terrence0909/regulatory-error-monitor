@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "days": 60,
+    "scale": 40000,
+    "machine": "Darwin arm64, 8 CPU cores",
+    "generate_s": 79.7
+  },
+  "before": {
+    "variant": "before",
+    "load_first_days_s": 125.6,
+    "first_build_s": 19.6,
+    "incremental_run_s": 16.8,
+    "incremental_fact_s": 14.5,
+    "incremental_staging_s": 0.1,
+    "incremental_work_s": 14.6,
+    "full_rebuild_s": 27.0,
+    "full_rebuild_fact_s": 23.7,
+    "build_with_tests_s": 42.7,
+    "tests": {
+      "pass": 72,
+      "warn": 0,
+      "error": 0
+    },
+    "raw_rows": 3449819,
+    "fact_rows": 1917765,
+    "dashboard_load_s": 10.3
+  },
+  "after": {
+    "variant": "after",
+    "load_first_days_s": 143.5,
+    "first_build_s": 19.1,
+    "incremental_run_s": 8.1,
+    "incremental_fact_s": 3.1,
+    "incremental_staging_s": 2.6,
+    "incremental_work_s": 5.8,
+    "full_rebuild_s": 21.5,
+    "full_rebuild_fact_s": 6.2,
+    "build_with_tests_s": 12.5,
+    "tests": {
+      "pass": 72,
+      "warn": 0,
+      "error": 0
+    },
+    "raw_rows": 3449819,
+    "fact_rows": 1917765,
+    "dashboard_load_s": 7.7
+  }
+}
