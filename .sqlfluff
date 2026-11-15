@@ -1,0 +1,10 @@
+# Settings for the SQL checker (sqlfluff). CI runs: sqlfluff lint dbt_project
+#
+# This checker is here to catch SQL that does not parse, broken Jinja, and inconsistent
+# capitalisation. The purely cosmetic layout rules are switched off on purpose, because the
+# models line their columns up by hand for readability and the checker would fight that.
+[sqlfluff]
+dialect = postgres
+templater = jinja
+max_line_length = 130
+exclude_rules = LT01, LT02, LT05, LT08, LT09, AL01, AM03, AM05, RF02, RF04, ST05, ST06, ST09

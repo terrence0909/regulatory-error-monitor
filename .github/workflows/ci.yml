@@ -1,0 +1,135 @@
+# Automated checks. They run on every push and every pull request.
+#   lint:  checks the Python and SQL, and that docker-compose.yml is valid
+#   test:  builds the whole pipeline from scratch on a fresh database and checks the results
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Connection settings for the test database below. These are throwaway values for CI only.
+  POSTGRES_HOST: localhost
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: ci_user
+  POSTGRES_PASSWORD: ci_password
+  POSTGRES_DB: reg_monitor_ci
+  DBT_SEND_ANONYMOUS_USAGE_STATS: "False"
+  DO_NOT_TRACK: "1"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install the checkers
+        run: pip install -r requirements-dev.txt
+
+      - name: Python (ruff)
+        run: ruff check .
+
+      - name: SQL (sqlfluff)
+        run: sqlfluff lint dbt_project
+
+      - name: docker-compose.yml is valid
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+
+  test:
+    name: Build and test the pipeline
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.4
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: reg_monitor_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_user -d reg_monitor_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install the pipeline's packages
+        run: pip install -r requirements.txt
+
+      - name: Unit tests (row checks, no database)
+        run: python -m pytest -q
+
+      - name: Create the database tables
+        env:
+          PGPASSWORD: ci_password
+        run: |
+          for f in sql/init/*.sql; do
+            psql -h localhost -U ci_user -d reg_monitor_ci -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+
+      - name: Generate a small set of fake data
+        run: |
+          python generator/generate.py --days 12 --scale 400
+          python generator/check_output.py
+
+      - name: Load it
+        run: |
+          python loader/load_batch.py --all
+          python loader/verify_load.py
+
+      - name: Build and test with dbt
+        run: bash run_build.sh
+
+      - name: A deliberately bad day must be caught, but must not stop the pipeline
+        env:
+          PGPASSWORD: ci_password
+        run: |
+          python generator/make_bad_day.py
+          BAD_DAY=$(python -c "import json; print(json.load(open('data/landing_bad/_bad_manifest.json'))['bad_day'])")
+          python loader/load_batch.py --date "$BAD_DAY" --dir data/landing_bad
+          bash run_build.sh
+          WARNINGS=$(psql -h localhost -U ci_user -d reg_monitor_ci -tA -c "select count(*) from audit.test_results where status = 'warn' and test_name = 'assert_quality_score_above_threshold' and run_id = (select run_id from audit.dbt_runs order by recorded_at desc limit 1)")
+          echo "Quality warnings recorded for the bad day: $WARNINGS"
+          test "$WARNINGS" = "1"
+
+      - name: Dashboard smoke test
+        run: |
+          python -m venv /tmp/dashboard-venv
+          /tmp/dashboard-venv/bin/pip install -q -r dashboard/requirements.txt
+          /tmp/dashboard-venv/bin/python tests/smoke_dashboard.py
+
+      - name: Keep the dbt results if something failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-results
+          path: |
+            dbt_project/target/run_results.json
+            dbt_project/logs/
+          if-no-files-found: ignore

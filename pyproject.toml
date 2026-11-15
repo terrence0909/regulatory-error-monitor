@@ -1,0 +1,10 @@
+# Settings for the code checker (ruff). CI runs: ruff check .
+[tool.ruff]
+line-length = 130
+extend-exclude = ["data", "dbt_project/target", "dbt_project/logs", ".venv"]
+
+[tool.ruff.lint]
+# E = style errors, F = real mistakes (unused imports, undefined names), W = whitespace warnings
+select = ["E", "F", "W"]
+# E702: a few places keep short one-line updates such as "total += x; count += 1"
+ignore = ["E702"]
