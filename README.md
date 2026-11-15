@@ -1,5 +1,7 @@
 # Regulatory Error Monitoring Warehouse
 
+[![CI](https://github.com/terrence0909/regulatory-error-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/terrence0909/regulatory-error-monitor/actions/workflows/ci.yml)
+
 A data pipeline that loads payment validation errors, keeps a full history of how error definitions change, checks data quality, runs daily on a schedule, and shows a dashboard of which rules fail and why.
 
 > **About the data:** all data in this project is generated. It is shaped like a regulatory reporting system, but it contains no real transactions, names or accounts.
@@ -18,8 +20,8 @@ A data pipeline that loads payment validation errors, keeps a full history of ho
 | 7 | Airflow | Done |
 | 8 | Dashboard | Done |
 | 9 | Performance | Done |
-| 10 | CI/CD | Next |
-| 11 | Docs and polish | Not started |
+| 10 | CI/CD | Done |
+| 11 | Docs and polish | Next |
 | 12 | Azure version | Not started |
 
 ## Stack
